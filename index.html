@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UML Class Diagrams | Prof. Amit Raval</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Fonts: Noto Sans Devanagari for proper Hindi rendering -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            scroll-behavior: smooth;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            transition: font-family 0.3s ease;
+        }
+        
+        .hero-gradient {
+            background: radial-gradient(circle at top right, #1e3a8a, #0f172a);
+        }
+        
+        .symbol-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+        
+        .symbol-card:hover {
+            border-color: #3b82f6;
+            background-color: #f8fafc;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        #inspector-panel {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100%);
+            width: 100%;
+        }
+        
+        @media (min-width: 768px) {
+            #inspector-panel { width: 400px; }
+        }
+
+        #inspector-panel.open {
+            transform: translateX(0);
+        }
+
+        #security-toast {
+            visibility: hidden;
+            width: 90%;
+            max-width: 320px;
+            background-color: #ef4444;
+            color: #fff;
+            text-align: center;
+            border-radius: 12px;
+            padding: 16px;
+            position: fixed;
+            z-index: 3000;
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
+            font-weight: 600;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        #security-toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 20px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 20px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        .class-box { fill: #ffffff; stroke: #334155; stroke-width: 2.5; }
+        .funny-box { border-left: 5px solid #f59e0b; background: #fffbeb; }
+        .def-box { border-left: 5px solid #2563eb; background: #eff6ff; }
+        .theory-card { border-top: 4px solid #3b82f6; }
+
+        .hover-scale { 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+        .hover-scale:hover { transform: scale(1.05); }
+
+        .inspect-target { cursor: pointer; stroke-linecap: round; }
+        .inspect-target:hover { stroke: #2563eb; stroke-width: 4; filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.6)); }
+        
+        .quiz-opt { transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.1); }
+        .quiz-opt:hover { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
+
+        .gradient-text {
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lang-active {
+            background: #2563eb !important;
+            color: white !important;
+        }
+
+        .toolbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        body.lang-hi {
+            font-family: 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .symbol-preview-box {
+            background: #fdfdfd;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            height: 100px;
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 2.5rem !important; line-height: 1.1 !important; }
+            .section-padding { padding-top: 4rem; padding-bottom: 4rem; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-x-hidden">
+
+    <!-- Security Warning Toast -->
+    <div id="security-toast" data-i18n="security_msg">Inspection is disabled! Focus on your study! 🚀</div>
+
+    <!-- Relationship Inspector Sidebar -->
+    <div id="inspector-panel" class="fixed top-0 right-0 h-full bg-white shadow-2xl z-[100] border-l border-slate-200 p-6 md:p-8 flex flex-col">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <div>
+                <h3 class="font-bold text-blue-600 text-sm uppercase tracking-widest" data-i18n="ins_title">Relationship Inspector</h3>
+                <p class="text-[10px] text-slate-400 font-bold" data-i18n="ins_sub">Architecture insights by Amit Raval</p>
+            </div>
+            <button onclick="toggleInspector()" class="text-slate-400 hover:text-slate-900 text-2xl transition"><i class="fas fa-times-circle"></i></button>
+        </div>
+        <div id="inspector-content" class="flex-1 overflow-y-auto pr-2">
+            <div class="text-center py-12 md:py-20 text-slate-400">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-search text-2xl md:text-3xl opacity-20"></i>
+                </div>
+                <p class="text-sm px-6" data-i18n="ins_hint">Select any relationship line in the Master Diagram below to see how it works!</p>
+            </div>
+        </div>
+        <div class="mt-auto pt-6 border-t border-slate-100 text-center">
+            <p class="text-[11px] text-blue-600 font-extrabold uppercase italic tracking-widest">Mastering Structure • 2026</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-lg border-b border-slate-100">
+        <div class="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2 md:space-x-3">
+                <div class="bg-blue-600 p-2 md:p-2.5 rounded-xl shadow-xl transform hover:rotate-6 transition">
+                    <i class="fas fa-cubes text-white text-base md:text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-lg md:text-xl font-black block text-slate-900 leading-none tracking-tight">Prof. Amit Raval</span>
+                    <span class="text-[9px] md:text-[10px] text-blue-600 font-bold tracking-widest uppercase" data-i18n="nav_role">UML Engineering Specialist</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <div class="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                    <button onclick="setLang('en')" id="lang-en" class="px-2 md:px-3 py-1 rounded-md text-[10px] transition lang-active font-bold">EN</button>
+                    <button onclick="setLang('hi')" id="lang-hi" class="px-2 md:px-3 py-1 rounded-md text-[10px] transition font-bold">हि</button>
+                </div>
+                <div class="hidden sm:flex items-center space-x-4 font-bold text-[11px] md:text-xs text-slate-500 uppercase">
+                    <a href="#intro" class="hover:text-blue-600 transition" data-i18n="nav_basics">Basics</a>
+                    <a href="#theory" class="hover:text-blue-600 transition" data-i18n="nav_theory">Theory</a>
+                    <a href="#example" class="hover:text-blue-600 transition" data-i18n="nav_master">Master</a>
+                    <a href="#quiz" class="hover:text-blue-600 transition" data-i18n="nav_quiz">Quiz</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-gradient text-white py-16 md:py-32 px-4 md:px-6 relative overflow-hidden">
+        <div class="container mx-auto relative z-10 text-center lg:text-left">
+            <div class="max-w-4xl">
+                <span class="inline-block px-3 py-1 rounded-full bg-blue-400/20 text-blue-300 text-[9px] md:text-[10px] font-black mb-6 border border-blue-400/30 tracking-[0.2em] uppercase" data-i18n="hero_badge">Academic Session 2026</span>
+                <h1 class="text-4xl md:text-8xl font-black mb-6 tracking-tighter leading-[1] md:leading-[0.9]">
+                    <span data-i18n="hero_h1">Classes are</span> <br><span class="gradient-text" data-i18n="hero_h2">Blueprints for Success.</span>
+                </h1>
+                <p class="text-base md:text-xl text-slate-300 mb-10 leading-relaxed max-w-2xl font-light" data-i18n="hero_p">
+                    Forget confusing definitions. Prof. Amit Raval makes UML intuitive through relatable logic. Master the art of structural modeling today.
+                </p>
+                <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+                    <a href="#example" class="bg-white text-blue-900 px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl font-black transition shadow-2xl hover:bg-blue-50 flex items-center gap-2 md:gap-3 text-sm md:text-base">
+                        <i class="fas fa-search-plus"></i> <span data-i18n="hero_btn1">Master Diagram</span>
+                    </a>
+                    <a href="#theory" class="bg-white/10 hover:bg-white/20 border border-white/20 px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition hover:bg-blue-500/40 text-sm md:text-base" data-i18n="nav_theory">
+                        Exam Theory
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\" fill=\"%23fff\"/%3E%3C/svg%3E');"></div>
+    </section>
+
+    <!-- CLASS VS OBJECT Section -->
+    <section id="intro" class="py-16 md:py-32 bg-white relative section-padding">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="text-center mb-12 md:mb-16">
+                <h2 class="text-3xl md:text-5xl font-black mb-4 tracking-tight" data-i18n="concept_h2">Class vs Object</h2>
+                <div class="w-16 md:w-24 h-1 md:h-1.5 bg-blue-600 mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20">
+                <!-- Left: Analogy -->
+                <div class="space-y-6 md:space-y-8">
+                    <div class="flex items-center gap-3 mb-2 md:mb-4">
+                        <i class="fas fa-laugh-beam text-blue-600 text-xl md:text-2xl"></i>
+                        <h3 class="text-xl md:text-2xl font-bold text-slate-800" data-i18n="concept_sub">The Biodata Story</h3>
+                    </div>
+                    <div class="p-6 md:p-8 funny-box rounded-2xl md:rounded-[32px] shadow-sm relative overflow-hidden group">
+                        <h4 class="font-black text-amber-900 text-lg md:text-xl mb-2 md:mb-3" data-i18n="class_title">The Class (The Biodata)</h4>
+                        <p class="text-sm md:text-base text-slate-700 font-medium" data-i18n="class_p">It is just a paper describing features. It occupies no RAM.</p>
+                    </div>
+                    <div class="p-6 md:p-8 bg-blue-600 text-white rounded-2xl md:rounded-[32px] shadow-2xl relative overflow-hidden group">
+                        <h4 class="font-black text-lg md:text-xl mb-2 md:mb-3" data-i18n="object_title">The Object (The Groom)</h4>
+                        <p class="text-sm md:text-base opacity-90 font-medium" data-i18n="object_p">When the actual guy comes to meet you—that's the Object! He takes up space.</p>
+                    </div>
+                </div>
+
+                <!-- Right: Definitions -->
+                <div class="space-y-6 md:space-y-8">
+                    <div class="flex items-center gap-3 mb-2 md:mb-4">
+                        <i class="fas fa-graduation-cap text-blue-600 text-xl md:text-2xl"></i>
+                        <h3 class="text-xl md:text-2xl font-bold text-slate-800" data-i18n="def_title">Formal Academic Definitions</h3>
+                    </div>
+                    <div class="p-6 md:p-8 def-box rounded-2xl md:rounded-[32px] shadow-sm hover-scale transition-all">
+                        <h4 class="font-black text-blue-900 text-lg md:text-xl mb-2 md:mb-3" data-i18n="class_def_h">Class Definition</h4>
+                        <p class="text-sm md:text-base text-slate-700 font-medium italic" data-i18n="class_def_p">A Class is a template or static blueprint that describes Attributes and Operations.</p>
+                    </div>
+                    <div class="p-6 md:p-8 def-box rounded-2xl md:rounded-[32px] shadow-sm hover-scale transition-all">
+                        <h4 class="font-black text-blue-900 text-lg md:text-xl mb-2 md:mb-3" data-i18n="object_def_h">Object Definition</h4>
+                        <p class="text-sm md:text-base text-slate-700 font-medium italic" data-i18n="object_def_p">An Object is a concrete, runtime instance of a Class.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EXAM THEORY POINTS Section -->
+    <section id="theory" class="py-16 md:py-32 bg-slate-50 border-y border-slate-200 section-padding">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="text-center mb-12 md:mb-20">
+                <h2 class="text-3xl md:text-5xl font-black mb-4 tracking-tight uppercase" data-i18n="theory_h2">Class Diagram: Exam Theory</h2>
+                <p class="text-sm md:text-base text-slate-500" data-i18n="theory_p">Key points to remember for your university exams.</p>
+                <div class="w-16 md:w-24 h-1 md:h-1.5 bg-blue-600 mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                <div class="bg-white p-6 md:p-10 rounded-3xl shadow-sm theory-card hover-scale">
+                    <h4 class="font-black text-blue-600 text-lg md:text-xl mb-4" data-i18n="theory1_h">Static Structural View</h4>
+                    <ul class="text-sm md:text-base text-slate-600 space-y-4 list-disc pl-5" data-i18n="theory1_p">
+                        <li>It represents the static view of an application.</li>
+                        <li>It describes the structure of a system by showing the system's classes, attributes, operations, and relationships.</li>
+                        <li>Class diagrams are the only UML diagrams which can be mapped directly with object-oriented languages.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-6 md:p-10 rounded-3xl shadow-sm theory-card hover-scale">
+                    <h4 class="font-black text-blue-600 text-lg md:text-xl mb-4" data-i18n="theory2_h">Class Compartments</h4>
+                    <ul class="text-sm md:text-base text-slate-600 space-y-4 list-disc pl-5" data-i18n="theory2_p">
+                        <li><strong>Top Compartment:</strong> Contains the name of the class (Centered, Bold, Starts with uppercase).</li>
+                        <li><strong>Middle Compartment:</strong> Contains the attributes (Fields/Variables) that describe the state.</li>
+                        <li><strong>Bottom Compartment:</strong> Contains the operations (Methods/Functions) that describe the behavior.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-6 md:p-10 rounded-3xl shadow-sm theory-card hover-scale">
+                    <h4 class="font-black text-blue-600 text-lg md:text-xl mb-4" data-i18n="theory3_h">Visibility Modifiers</h4>
+                    <ul class="text-sm md:text-base text-slate-600 space-y-4 list-disc pl-5" data-i18n="theory3_p">
+                        <li><strong>+ (Public):</strong> Visible to all elements in the system.</li>
+                        <li><strong>- (Private):</strong> Visible only within the class itself.</li>
+                        <li><strong># (Protected):</strong> Visible to the class and its descendants (subclasses).</li>
+                        <li><strong>~ (Package):</strong> Visible to elements within the same package.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-6 md:p-10 rounded-3xl shadow-sm theory-card hover-scale">
+                    <h4 class="font-black text-blue-600 text-lg md:text-xl mb-4" data-i18n="theory4_h">Multiplicity Rules</h4>
+                    <ul class="text-sm md:text-base text-slate-600 space-y-4 list-disc pl-5" data-i18n="theory4_p">
+                        <li>Multiplicity defines how many instances of one class are linked to one instance of another class.</li>
+                        <li>Common notations: <strong>0..1</strong> (Optional), <strong>1</strong> (Exactly one), <strong>*</strong> (Many), <strong>1..*</strong> (One or more).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- THE MASTER DIAGRAM (Modern Example: Online Store) -->
+    <section id="example" class="py-16 md:py-32 bg-white overflow-hidden section-padding">
+        <div class="container mx-auto px-4 md:px-6 text-center">
+            <h2 class="text-3xl md:text-5xl font-black mb-4 md:mb-6 tracking-tight uppercase" data-i18n="master_h2">Master Case: Smart Store</h2>
+            <p class="text-sm md:text-lg text-slate-600 leading-relaxed mb-8 md:mb-20" data-i18n="master_p">A complete professional ecosystem. Click relationship lines to inspect logic!</p>
+
+            <div class="bg-slate-50 p-4 md:p-12 rounded-3xl md:rounded-[80px] shadow-xl border border-slate-200 overflow-x-auto">
+                <div class="min-w-[1200px] inline-block">
+                    <svg viewBox="0 0 1400 1100" class="w-full h-auto">
+                        <!-- Class: OnlineStore -->
+                        <g transform="translate(575, 40)" class="hover-scale">
+                            <rect width="250" height="110" class="class-box" rx="15" />
+                            <text x="125" y="32" text-anchor="middle" font-weight="900" fill="#1e293b" font-size="18">SmartStore</text>
+                            <line x1="0" y1="45" x2="250" y2="45" stroke="#334155" stroke-width="2.5"/>
+                            <text x="15" y="70" font-size="13" fill="#64748b">+ storeName: String</text>
+                        </g>
+                        <!-- Aggregation: Store -> Product -->
+                        <g class="inspect-target" onclick="inspect('aggregation')">
+                            <line x1="700" y1="150" x2="700" y2="280" stroke="#3b82f6" stroke-width="4" stroke-dasharray="8,4" />
+                            <path d="M700 150 L685 165 L700 180 L715 165 Z" fill="white" stroke="#3b82f6" stroke-width="2" />
+                            <text x="715" y="210" font-size="14" font-weight="bold" fill="#3b82f6">1</text>
+                            <text x="715" y="260" font-size="14" font-weight="bold" fill="#3b82f6">0..*</text>
+                        </g>
+                        <!-- Class: Product (Abstract) -->
+                        <g transform="translate(575, 280)" class="hover-scale">
+                            <rect width="250" height="150" class="class-box" rx="15" />
+                            <text x="125" y="32" text-anchor="middle" font-weight="900" fill="#1e293b" font-size="20">/Product/</text>
+                            <line x1="0" y1="45" x2="250" y2="45" stroke="#334155" stroke-width="2.5"/>
+                            <text x="15" y="68" font-size="13" fill="#64748b"># price: double</text>
+                            <line x1="0" y1="110" x2="250" y2="110" stroke="#334155" stroke-width="2.5"/>
+                            <text x="15" y="135" font-size="13" fill="#2563eb" font-weight="black">+ getDetails()</text>
+                        </g>
+                        <!-- Inheritance -->
+                        <g class="inspect-target" onclick="inspect('inheritance')">
+                            <path d="M700 430 L700 480 L450 480 L450 550" fill="none" stroke="#64748b" stroke-width="3" />
+                            <path d="M700 480 L950 480 L950 550" fill="none" stroke="#64748b" stroke-width="3" />
+                            <path d="M700 430 L688 455 L712 455 Z" fill="white" stroke="#64748b" stroke-width="2" />
+                        </g>
+                        <g transform="translate(325, 550)" class="hover-scale"><rect width="250" height="80" class="class-box" rx="15" /><text x="125" y="45" text-anchor="middle" font-weight="900" fill="#1e293b" font-size="18">Electronics</text></g>
+                        <g transform="translate(825, 550)" class="hover-scale"><rect width="250" height="80" class="class-box" rx="15" /><text x="125" y="45" text-anchor="middle" font-weight="900" fill="#1e293b" font-size="18">Clothing</text></g>
+                        <!-- Composition -->
+                        <g class="inspect-target" onclick="inspect('composition')">
+                            <line x1="175" y1="430" x2="175" y2="600" stroke="#ef4444" stroke-width="4" />
+                            <path d="M175 430 L160 445 L175 460 L190 445 Z" fill="#ef4444" stroke="#ef4444" stroke-width="2" />
+                        </g>
+                        <g transform="translate(50, 280)" class="hover-scale"><rect width="250" height="150" class="class-box" rx="15" /><text x="125" y="32" text-anchor="middle" font-weight="900" fill="#1e293b" font-size="20">Customer</text></g>
+                        <g transform="translate(50, 600)" class="hover-scale"><rect width="250" height="100" class="class-box" rx="15" /><text x="125" y="32" text-anchor="middle" font-weight="900" fill="#1e293b" font-size="18">Order</text></g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SYMBOL GUIDE FOR SOFTWARE -->
+    <section id="toolbox" class="py-16 md:py-32 bg-white section-padding">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="text-center mb-12 md:mb-20">
+                <h2 class="text-3xl md:text-4xl font-black mb-4" data-i18n="toolbox_h2">UML Modeling Toolbox</h2>
+                <p class="text-sm md:text-base text-slate-500" data-i18n="toolbox_p">Essential symbols to look for in modeling software like StarUML or Lucidchart.</p>
+                <div class="w-16 md:w-20 h-1 md:h-1.5 bg-blue-600 mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                <div class="bg-slate-50 p-6 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-100 shadow-sm">
+                    <div class="symbol-preview-box">
+                        <svg width="100" height="60" viewBox="0 0 120 80"><rect x="10" y="10" width="100" height="60" fill="white" stroke="#334155" stroke-width="2"/><line x1="10" y1="30" x2="110" y2="30" stroke="#334155" stroke-width="1.5"/><line x1="10" y1="50" x2="110" y2="50" stroke="#334155" stroke-width="1.5"/></svg>
+                    </div>
+                    <h4 class="font-black text-lg md:text-xl mb-2" data-i18n="tool1_h">Class Box</h4>
+                    <p class="text-xs md:text-sm text-slate-600" data-i18n="tool1_p">A 3-compartment rectangle for Name, Attributes, and Methods.</p>
+                </div>
+                <div class="bg-slate-50 p-6 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-100 shadow-sm">
+                    <div class="symbol-preview-box">
+                        <svg width="100" height="60" viewBox="0 0 120 80"><line x1="60" y1="60" x2="60" y2="25" stroke="#334155" stroke-width="2"/><path d="M60 10 L50 25 L70 25 Z" fill="white" stroke="#334155" stroke-width="2"/></svg>
+                    </div>
+                    <h4 class="font-black text-lg md:text-xl mb-2" data-i18n="tool2_h">Inheritance</h4>
+                    <p class="text-xs md:text-sm text-slate-600" data-i18n="tool2_p">Solid line with a Hollow Triangle pointing to the Parent.</p>
+                </div>
+                <div class="bg-slate-50 p-6 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-100 shadow-sm">
+                    <div class="symbol-preview-box">
+                        <svg width="100" height="60" viewBox="0 0 120 80"><line x1="25" y1="40" x2="100" y2="40" stroke="#334155" stroke-width="2"/><path d="M10 40 L25 30 L40 40 L25 50 Z" fill="white" stroke="#334155" stroke-width="2"/></svg>
+                    </div>
+                    <h4 class="font-black text-lg md:text-xl mb-2" data-i18n="tool3_h">Aggregation</h4>
+                    <p class="text-xs md:text-sm text-slate-600" data-i18n="tool3_p">Solid line with a Hollow Diamond for weak 'Part-of'.</p>
+                </div>
+                <div class="bg-slate-50 p-6 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-100 shadow-sm">
+                    <div class="symbol-preview-box">
+                        <svg width="100" height="60" viewBox="0 0 120 80"><line x1="25" y1="40" x2="100" y2="40" stroke="#334155" stroke-width="2"/><path d="M10 40 L25 30 L40 40 L25 50 Z" fill="#334155" stroke="#334155" stroke-width="2"/></svg>
+                    </div>
+                    <h4 class="font-black text-lg md:text-xl mb-2" data-i18n="tool4_h">Composition</h4>
+                    <p class="text-xs md:text-sm text-slate-600" data-i18n="tool4_p">Solid line with a Solid Diamond for strong lifecycle.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quiz Section -->
+    <section id="quiz" class="py-16 md:py-24 bg-blue-950 text-white section-padding">
+        <div class="container mx-auto px-4 md:px-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-black mb-8 md:mb-12" data-i18n="nav_quiz">Take Quiz</h2>
+            <div class="max-w-3xl mx-auto bg-white/5 p-6 md:p-12 rounded-3xl md:rounded-[50px] border border-white/10 shadow-2xl">
+                <div id="question" class="text-lg md:text-2xl font-bold mb-8 md:mb-10 min-h-[4rem]">Loading...</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="checkAnswer(0)" class="quiz-opt p-4 md:p-7 bg-white/5 rounded-xl md:rounded-3xl text-left font-bold text-sm md:text-lg">Option 1</button>
+                    <button onclick="checkAnswer(1)" class="quiz-opt p-4 md:p-7 bg-white/5 rounded-xl md:rounded-3xl text-left font-bold text-sm md:text-lg">Option 2</button>
+                    <button onclick="checkAnswer(2)" class="quiz-opt p-4 md:p-7 bg-white/5 rounded-xl md:rounded-3xl text-left font-bold text-sm md:text-lg">Option 3</button>
+                    <button onclick="checkAnswer(4)" class="quiz-opt p-4 md:p-7 bg-white/5 rounded-xl md:rounded-3xl text-left font-bold text-sm md:text-lg">Option 4</button>
+                </div>
+                <div id="quiz-feedback" class="mt-8 md:mt-12 font-black text-xl md:text-2xl h-8 md:h-10 italic"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-white py-16 md:py-24 text-center border-t border-white/5">
+        <div class="container mx-auto px-4 md:px-6">
+            <h3 class="text-3xl md:text-4xl font-black mb-4 md:mb-6 tracking-tighter">Prof. Amit Raval</h3>
+            <p class="text-blue-500 font-bold tracking-[0.3em] md:tracking-[0.5em] uppercase text-[9px] md:text-[10px] mb-8 md:mb-12">Building World-Class Architects Since 2008</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentLang = 'en';
+
+        const translations = {
+            en: {
+                security_msg: "Sshhh! Inspecting code is like cheating in a UML exam! 🚀",
+                nav_role: "UML Engineering Specialist",
+                nav_basics: "Basics",
+                nav_theory: "Theory",
+                nav_master: "Master",
+                nav_toolbox: "Symbol Guide",
+                nav_quiz: "Take Quiz",
+                hero_badge: "Academic Session 2026",
+                hero_h1: "Classes are",
+                hero_h2: "Blueprints for Success.",
+                hero_p: "Forget confusing definitions. Prof. Amit Raval makes UML intuitive through relatable logic. Master structural modeling today.",
+                hero_btn1: "Master Diagram",
+                concept_h2: "Class vs Object",
+                concept_sub: "The Biodata Story",
+                concept_p: "Most students get confused. Think of it like a Marriage Biodata.",
+                class_title: "The Class (The Biodata)",
+                class_p: "It is just a paper describing features. It occupies no RAM.",
+                object_title: "The Object (The Groom)",
+                object_p: "When the actual guy comes to meet you—that's the Object! He takes up space.",
+                def_title: "Formal Academic Definitions",
+                class_def_h: "Class Definition",
+                class_def_p: "A Class is a template or static blueprint that describes Attributes and Operations.",
+                object_def_h: "Object Definition",
+                object_def_p: "An Object is a concrete, runtime instance of a Class.",
+                concept_quote: "Class = Template | Object = Instance",
+                theory_h2: "Class Diagram: Exam Theory",
+                theory_p: "Key points to remember for your university exams.",
+                theory1_h: "Static Structural View",
+                theory1_p: "<li>It represents the static view of an application.</li><li>It describes the structure of a system by showing the system's classes, attributes, operations, and relationships.</li><li>Class diagrams are the only UML diagrams which can be mapped directly with object-oriented languages.</li>",
+                theory2_h: "Class Compartments",
+                theory2_p: "<li><strong>Top Compartment:</strong> Contains the name of the class (Centered, Bold).</li><li><strong>Middle Compartment:</strong> Contains the attributes (Fields/Variables).</li><li><strong>Bottom Compartment:</strong> Contains the operations (Methods/Functions).</li>",
+                theory3_h: "Visibility Modifiers",
+                theory3_p: "<li><strong>+ (Public):</strong> Visible to all elements.</li><li><strong>- (Private):</strong> Visible only within the class.</li><li><strong># (Protected):</strong> Visible to the class and subclasses.</li><li><strong>~ (Package):</strong> Visible to same package elements.</li>",
+                theory4_h: "Multiplicity Rules",
+                theory4_p: "<li>Multiplicity defines how many instances of one class are linked to one instance of another.</li><li>Notations: 0..1 (Optional), 1 (Exactly one), * (Many), 1..* (One or more).</li>",
+                master_h2: "Modern Master: Smart Store",
+                master_p: "Architecture for a platform like Amazon. Click lines for logic!",
+                toolbox_h2: "UML Modeling Toolbox",
+                toolbox_p: "Essential symbols used in professional software.",
+                tool1_h: "Class Box",
+                tool1_p: "A 3-compartment rectangle for Name, Attributes, and Methods.",
+                tool2_h: "Inheritance",
+                tool2_p: "Solid line with a Hollow Triangle pointing to the Parent.",
+                tool3_h: "Aggregation",
+                tool3_p: "Solid line with a Hollow Diamond for weak 'Part-of'.",
+                tool4_h: "Composition",
+                tool4_p: "Solid line with a Solid Diamond for strong lifecycle.",
+                ins_title: "Relationship Inspector",
+                ins_sub: "Architecture insights by Amit Raval",
+                ins_hint: "Select any relationship line in the Master Diagram!",
+                inheritance_h: "Inheritance (Virasat)",
+                inheritance_p: "Desi Logic: Child class inherits features from parent. It's like property inheritance!",
+                aggregation_h: "Aggregation (Weak Rishta)",
+                aggregation_p: "Desi Logic: Roommate logic! Independent lifecycles.",
+                composition_h: "Composition (Strong Rishta)",
+                composition_p: "Desi Logic: Body & Soul logic! Life-and-Death dependency."
+            },
+            hi: {
+                security_msg: "कोड इंस्पेक्ट करना मना है! अपनी पढ़ाई पर ध्यान दें! 🚀",
+                nav_role: "यूएमएल इंजीनियरिंग विशेषज्ञ",
+                nav_basics: "बुनियादी बातें",
+                nav_theory: "सिद्धांत",
+                nav_master: "मास्टर",
+                nav_toolbox: "चिह्न गाइड",
+                nav_quiz: "क्विज",
+                hero_badge: "अकादमिक सत्र 2026",
+                hero_h1: "क्लासेस",
+                hero_h2: "सफलता का ब्लूप्रिंट हैं।",
+                hero_p: "कठिन परिभाषाओं को भूल जाइए। प्रो. अमित रावल यूएमएल को सरल तर्क के साथ समझाते हैं।",
+                hero_btn1: "मास्टर डायग्राम",
+                concept_h2: "क्लास बनाम ऑब्जेक्ट",
+                concept_sub: "बायोडेटा की कहानी",
+                concept_p: "छात्र अक्सर भ्रमित हो जाते हैं। इसे शादी के बायोडेटा की तरह समझें।",
+                class_title: "क्लास (बायोडेटा)",
+                class_p: "यह सिर्फ एक कागज़ है जिसमें खूबियां लिखी हैं। यह कोई मेमोरी नहीं लेता।",
+                object_title: "ऑब्जेक्ट (दूल्हा)",
+                object_p: "जब असली लड़का आपसे मिलने आता है—वह ऑब्जेक्ट है! वह स्थान घेरता है।",
+                def_title: "औपचारिक अकादमिक परिभाषाएँ",
+                class_def_h: "क्लास क्या है? (परिभाषा)",
+                class_def_p: "क्लास एक टेम्पलेट या स्टैटिक ब्लूप्रिंट है जो एट्रिब्यूट्स और मेथड्स का वर्णन करता है।",
+                object_def_h: "ऑब्जेक्ट क्या है? (परिभाषा)",
+                object_def_p: "ऑब्जेक्ट एक क्लास का वास्तविक, रनटाइम उदाहरण (इन्स्टेंस) है।",
+                concept_quote: "क्लास = टेम्पलेट | ऑब्जेक्ट = उदाहरण",
+                theory_h2: "क्लास डायग्राम: परीक्षा के सिद्धांत",
+                theory_p: "आपकी यूनिवर्सिटी परीक्षाओं के लिए याद रखने योग्य मुख्य बिंदु।",
+                theory1_h: "स्टैटिक स्ट्रक्चरल व्यू",
+                theory1_p: "<li>यह एप्लिकेशन के स्टैटिक व्यू को दर्शाता है।</li><li>यह सिस्टम की क्लासेज, एट्रिब्यूट्स और रिलेशनशिप दिखाकर संरचना का वर्णन करता है।</li><li>यह एकमात्र यूएमएल डायग्राम है जिसे सीधे प्रोग्रामिंग भाषाओं के साथ जोड़ा जा सकता है।</li>",
+                theory2_h: "क्लास के हिस्से (Compartments)",
+                theory2_p: "<li><strong>ऊपरी हिस्सा:</strong> इसमें क्लास का नाम होता है (केंद्रित, बोल्ड)।</li><li><strong>मध्य हिस्सा:</strong> इसमें एट्रिब्यूट्स (वेरिएबल) होते हैं।</li><li><strong>निचला हिस्सा:</strong> इसमें ऑपरेशन्स (मेथड्स/फंक्शन) होते हैं।</li>",
+                theory3_h: "विजिबिलिटी मॉडिफायर्स",
+                theory3_p: "<li><strong>+ (Public):</strong> सिस्टम के सभी तत्वों को दिखाई देता है।</li><li><strong>- (Private):</strong> केवल क्लास के भीतर ही दिखाई देता है।</li><li><strong># (Protected):</strong> क्लास और उसके वंशजों (subclasses) को दिखाई देता।</li><li><strong>~ (Package):</strong> एक ही पैकेज के तत्वों को दिखाई देता।</li>",
+                theory4_h: "मल्टीप्लिसिटी के नियम",
+                theory4_p: "<li>यह परिभाषित करता है कि एक क्लास के कितने उदाहरण दूसरी क्लास के एक उदाहरण से जुड़े हैं।</li><li>संकेत: 0..1 (वैकल्पिक), 1 (केवल एक), * (अनेक), 1..* (एक या अधिक)।</li>",
+                master_h2: "आधुनिक मास्टर: स्मार्ट स्टोर",
+                master_p: "अमेज़न जैसा आर्किटेक्चर। तर्क देखने के लिए लाइनों पर क्लिक करें!",
+                toolbox_h2: "यूएमएल मॉडलिंग टूलबॉक्स",
+                toolbox_p: "सॉफ्टवेयर में इस्तेमाल होने वाले प्रतीक।",
+                tool1_h: "क्लास बॉक्स",
+                tool1_p: "नाम, एट्रिब्यूट्स और मेथड्स के लिए 3-हिस्सों वाला आयत।",
+                tool2_h: "इन्हेरिटेंस",
+                tool2_p: "ठोस रेखा और खाली त्रिकोण। हमेशा पैरेंट क्लास की ओर इशारा करता है।",
+                tool3_h: "एग्रीगेशन",
+                tool3_p: "ठोस रेखा और खाली डायमंड। यह 'Part-of' रिश्ता दिखाता है।",
+                tool4_h: "कंपोजिशन",
+                tool4_p: "ठोस रेखा और भरा हुआ डायमंड। यह मजबूत रिश्ता है।",
+                ins_title: "रिलेशनशिप इंस्पेक्टर",
+                ins_sub: "अमित रावल द्वारा इनसाइट्स",
+                ins_hint: "तर्क समझने के लिए डायग्राम में किसी भी लाइन को चुनें!",
+                inheritance_h: "इन्हेरिटेंस (विरासत)",
+                inheritance_p: "देसी तर्क: बच्चा अपनी खूबियां पैरेंट से लेता है। जैसे खानदानी जायदाद!",
+                aggregation_h: "एग्रीगेशन (कमजोर रिश्ता)",
+                aggregation_p: "देसी तर्क: रूममेट लॉजिक! अगर एक क्लास हटे तो दूसरी रह सकती है।",
+                composition_h: "कंपोजिशन (मजबूत रिश्ता)",
+                composition_p: "देसी तर्क: शरीर और आत्मा! एक खत्म तो दूसरा भी खत्म।"
+            }
+        };
+
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) el.innerHTML = translations[lang][key];
+            });
+            document.getElementById('lang-en').classList.toggle('lang-active', lang === 'en');
+            document.getElementById('lang-hi').classList.toggle('lang-active', lang === 'hi');
+            document.body.classList.toggle('lang-hi', lang === 'hi');
+            updateQuiz();
+        }
+
+        // Quiz Logic
+        let qIdx = 0;
+        const quizData = [
+            { q: "If Customer is deleted, active Cart is deleted. Which relationship?", opts: ["Aggregation", "Association", "Composition", "Generalization"], a: 2 },
+            { q: "Hollow Triangle arrow on a solid line indicates?", opts: ["Weak link", "Inheritance", "Dependency", "Ownership"], a: 1 },
+            { q: "A Class occupies physical RAM memory?", opts: ["Yes, always", "Only if it has methods", "No, it is a template", "Only in Java"], a: 2 }
+        ];
+
+        function updateQuiz() {
+            const container = document.getElementById('question');
+            const btns = document.querySelectorAll('.quiz-opt');
+            container.innerText = quizData[qIdx].q;
+            btns.forEach((b, i) => b.innerText = quizData[qIdx].opts[i]);
+            document.getElementById('quiz-feedback').innerText = "";
+        }
+
+        function checkAnswer(idx) {
+            const feedback = document.getElementById('quiz-feedback');
+            if(idx === quizData[qIdx].a) {
+                feedback.innerHTML = currentLang === 'hi' ? "<span class='text-emerald-400'>बिल्कुल सही! 🏆</span>" : "<span class='text-emerald-400'>Correct! 🏆</span>";
+                setTimeout(() => { qIdx = (qIdx + 1) % quizData.length; updateQuiz(); }, 2000);
+            } else {
+                feedback.innerHTML = currentLang === 'hi' ? "<span class='text-rose-400'>गलत जवाब। ❌</span>" : "<span class='text-rose-400'>Try again. ❌</span>";
+            }
+        }
+
+        const inspector = document.getElementById('inspector-panel');
+        const inspectorContent = document.getElementById('inspector-content');
+
+        function toggleInspector() { inspector.classList.toggle('open'); }
+
+        function inspect(type) {
+            if(!inspector.classList.contains('open')) toggleInspector();
+            const title = translations[currentLang][`${type}_h`];
+            const desc = translations[currentLang][`${type}_p`];
+            inspectorContent.innerHTML = `
+                <div class="animate-fadeIn">
+                    <h4 class="text-xl md:text-2xl font-black text-slate-900 mb-4">${title}</h4>
+                    <div class="h-1 w-12 bg-blue-600 mb-4 rounded-full"></div>
+                    <p class="text-sm md:text-base text-slate-600 leading-relaxed mb-6 font-medium">${desc}</p>
+                </div>
+            `;
+        }
+
+        document.addEventListener('contextmenu', e => { e.preventDefault(); showWarning(); }, false);
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 123) { e.preventDefault(); showWarning(); return false; }
+            if (e.ctrlKey && (e.shiftKey || e.keyCode === 85 || e.keyCode === 83)) {
+                if ([73, 74, 67, 85, 83].includes(e.keyCode)) { e.preventDefault(); showWarning(); return false; }
+            }
+        }, false);
+
+        function showWarning() {
+            const t = document.getElementById("security-toast");
+            t.innerText = translations[currentLang].security_msg;
+            t.className = "show";
+            setTimeout(function(){ t.className = t.className.replace("show", ""); }, 3000);
+        }
+
+        updateQuiz();
+    </script>
+</body>
+</html>
